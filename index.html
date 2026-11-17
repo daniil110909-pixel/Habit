@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Привычки</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --bg-2: var(--tg-theme-secondary-bg-color, #f2f2f7);
+  --text: var(--tg-theme-text-color, #000000);
+  --hint: var(--tg-theme-hint-color, #8e8e93);
+  --fill: rgba(0,0,0,0.05);
+  --sep: rgba(0,0,0,0.08);
+}
+.dark {
+  --fill: rgba(255,255,255,0.08);
+  --sep: rgba(255,255,255,0.1);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+button { font-family: inherit; }
+.screen {
+  display: none;
+  padding: 20px 20px 60px;
+  min-height: 100vh;
+  flex-direction: column;
+}
+.screen.active { display: flex; }
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  min-height: 44px;
+}
+.topbar-left { flex: 1; min-width: 0; }
+.title {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.9px;
+  margin: 0 0 4px;
+  line-height: 1.1;
+}
+.title-sm {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--fill);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 17px;
+  padding: 8px 0;
+  cursor: pointer;
+  font-weight: 400;
+}
+.text-btn:disabled { color: var(--hint); opacity: 0.4; cursor: default; }
+#btn-save:not(:disabled) { font-weight: 600; }
+.hint { color: var(--hint); font-size: 15px; margin: 0; }
+#habits-list { display: flex; flex-direction: column; gap: 10px; }
+.habit {
+  background: var(--bg-2);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: opacity 0.2s;
+}
+.habit.done { opacity: 0.5; }
+.habit-main { flex: 1; cursor: pointer; min-width: 0; }
+.habit-name {
+  font-size: 17px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+.habit-sub {
+  font-size: 13px;
+  color: var(--hint);
+  margin-top: 2px;
+}
+.check-btn {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hint);
+  background: transparent;
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+.check-btn.on { background: var(--text); border-color: var(--text); }
+.check-btn svg { width: 15px; height: 15px; display: none; }
+.check-btn.on svg { display: block; }
+.empty {
+  display: none;
+  text-align: center;
+  padding: 60px 20px;
+}
+.empty p { margin: 8px 0; font-size: 17px; }
+.empty .hint { font-size: 15px; }
+.form-group { margin-bottom: 26px; }
+.label {
+  display: block;
+  font-size: 13px;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+.input {
+  width: 100%;
+  border: none;
+  background: var(--bg-2);
+  color: var(--text);
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 17px;
+  outline: none;
+  font-family: inherit;
+}
+.input::placeholder { color: var(--hint); }
+.segment {
+  display: flex;
+  background: var(--bg-2);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
+}
+.seg-item {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 10px 2px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.seg-item.active {
+  background: var(--bg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.dark .seg-item.active {
+  background: #48484a;
+  box-shadow: none;
+}
+.stats-row {
+  display: flex;
+  gap: 10px;
+  margin: 24px 0;
+}
+.stat {
+  flex: 1;
+  background: var(--bg-2);
+  border-radius: 14px;
+  padding: 16px 8px;
+  text-align: center;
+}
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--hint);
+  margin-top: 4px;
+}
+.calendar-wrap {
+  background: var(--bg-2);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.cal-grid { display: flex; flex-direction: column; gap: 4px; }
+.cal-row {
+  display: grid;
+  grid-template-columns: 24px repeat(7, 22px);
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+.cal-row.header { margin-bottom: 2px; }
+.cal-week-spacer { width: 24px; }
+.cal-week-label {
+  font-size: 9px;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: right;
+  padding-right: 4px;
+  font-weight: 500;
+}
+.cal-day-label {
+  font-size: 10px;
+  color: var(--hint);
+  text-align: center;
+  font-weight: 500;
+}
+.cal-cell {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--fill);
+}
+.cal-cell.done { background: var(--text); }
+.cal-cell.postponed { background: var(--hint); opacity: 0.35; }
+.cal-cell.future { background: transparent; }
+.action-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+.action-btn.primary { background: var(--text); color: var(--bg); }
+.action-btn.secondary { background: var(--bg-2); color: var(--text); }
+.btn-danger {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #ff3b30;
+  font-size: 17px;
+  font-weight: 500;
+  padding: 16px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<div id="screen-list" class="screen active">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 class="title">Привычки</h1>
+      <p class="hint" id="today-label"></p>
+    </div>
+    <button class="icon-btn" id="btn-add" aria-label="Добавить">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <div id="habits-list"></div>
+  <div id="empty-list" class="empty">
+    <p>Пока пусто</p>
+    <p class="hint">Добавь первую привычку — нажми + вверху.</p>
+  </div>
+</div>
+
+<div id="screen-add" class="screen">
+  <div class="topbar">
+    <button class="text-btn" id="btn-cancel">Отмена</button>
+    <span class="title-sm">Новая привычка</span>
+    <button class="text-btn" id="btn-save" disabled>Готово</button>
+  </div>
+  <div class="form-group">
+    <label class="label">Название</label>
+    <input id="input-name" class="input" type="text" placeholder="Например, пить воду" autocomplete="off" autocorrect="off" autocapitalize="off">
+  </div>
+  <div class="form-group">
+    <label class="label">Как часто</label>
+    <div class="segment" id="segment">
+      <button class="seg-item active" data-interval="1">Каждый день</button>
+      <button class="seg-item" data-interval="2">Через день</button>
+      <button class="seg-item" data-interval="3">Каждые 3 дня</button>
+      <button class="seg-item" data-interval="7">Раз в неделю</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-detail" class="screen">
+  <div class="topbar">
+    <button class="text-btn" id="btn-back">Назад</button>
+    <div></div>
+    <div></div>
+  </div>
+  <h1 class="title" id="detail-title"></h1>
+  <p class="hint" id="detail-subtitle"></p>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Стрик</div></div>
+    <div class="stat"><div class="stat-value" id="stat-best">0</div><div class="stat-label">Лучший</div></div>
+    <div class="stat"><div class="stat-value" id="stat-month">0%</div><div class="stat-label">За месяц</div></div>
+  </div>
+  <div class="calendar-wrap">
+    <div class="cal-grid" id="detail-calendar"></div>
+  </div>
+  <div id="detail-actions"></div>
+  <button class="btn-danger" id="btn-delete">Удалить привычку</button>
+</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+if (tg.colorScheme === 'dark') document.body.classList.add('dark');
+
+const STORAGE_KEY = 'habits_v1';
+const state = { habits: [], marks: {}, detailId: null, addForm: { name: '', intervalDays: 1 } };
+
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+const todayStr = () => ymd(new Date());
+function parseYmd(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function addDays(s, n) { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+function diffDays(a, b) { return Math.round((parseYmd(b) - parseYmd(a)) / 86400000); }
+
+const MONTHS = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+function formatDate(s) {
+  const d = parseYmd(s);
+  const diff = diffDays(todayStr(), s);
+  if (diff === 0) return 'сегодня';
+  if (diff === 1) return 'завтра';
+  if (diff === -1) return 'вчера';
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    state.habits = data.habits || [];
+    state.marks = data.marks || {};
+  } catch (e) { console.warn(e); }
+}
+function persist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ habits: state.habits, marks: state.marks }));
+}
+
+const getMarks = (h) => state.marks[h.id] || {};
+
+function getNextDue(h) {
+  const marks = getMarks(h);
+  const dates = Object.keys(marks).sort();
+  if (dates.length === 0) return h.startDate;
+  const latest = dates[dates.length - 1];
+  if (marks[latest] === 'postponed') return addDays(latest, 1);
+  return addDays(latest, h.intervalDays);
+}
+const isDueToday = (h) => getNextDue(h) <= todayStr();
+const getTodayMark = (h) => getMarks(h)[todayStr()];
+const isDoneToday = (h) => getTodayMark(h) === 'done';
+const isPostponedToday = (h) => getTodayMark(h) === 'postponed';
+
+function setMark(h, type) {
+  if (!state.marks[h.id]) state.marks[h.id] = {};
+  state.marks[h.id][todayStr()] = type;
+  persist();
+}
+function clearTodayMark(h) {
+  if (state.marks[h.id]) { delete state.marks[h.id][todayStr()]; persist(); }
+}
+
+function getStreak(h) {
+  const done = Object.entries(getMarks(h)).filter(([d,t]) => t === 'done').map(([d]) => d).sort().reverse();
+  if (done.length === 0) return 0;
+  if (diffDays(done[0], todayStr()) > h.intervalDays) return 0;
+  let streak = 1;
+  for (let i = 1; i < done.length; i++) {
+    if (diffDays(done[i], done[i-1]) <= h.intervalDays) streak++;
+    else break;
+  }
+  return streak;
+}
+function getBest(h) {
+  const done = Object.entries(getMarks(h)).filter(([d,t]) => t === 'done').map(([d]) => d).sort();
+  if (done.length === 0) return 0;
+  let best = 1, cur = 1;
+  for (let i = 1; i < done.length; i++) {
+    if (diffDays(done[i-1], done[i]) <= h.intervalDays) cur++;
+    else cur = 1;
+    if (cur > best) best = cur;
+  }
+  return best;
+}
+function getMonthPct(h) {
+  const start = addDays(todayStr(), -29);
+  let done = 0;
+  for (const [d,t] of Object.entries(getMarks(h))) {
+    if (t === 'done' && d >= start) done++;
+  }
+  const expected = Math.ceil(30 / h.intervalDays);
+  return Math.min(100, Math.round(done / expected * 100));
+}
+
+function renderTodayLabel() {
+  const d = new Date();
+  const wd = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'][d.getDay()];
+  $('today-label').textContent = `${wd}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+function renderList() {
+  renderTodayLabel();
+  const listEl = $('habits-list');
+  const emptyEl = $('empty-list');
+  if (state.habits.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  const rank = (h) => isDoneToday(h) ? 2 : isPostponedToday(h) ? 1.5 : isDueToday(h) ? 0 : 1;
+  const sorted = [...state.habits].sort((a,b) => rank(a) - rank(b));
+  listEl.innerHTML = '';
+  sorted.forEach(h => listEl.appendChild(renderHabit(h)));
+}
+
+function renderHabit(h) {
+  const done = isDoneToday(h);
+  const postponed = isPostponedToday(h);
+  const due = isDueToday(h);
+  let sub;
+  if (done) sub = 'Выполнено сегодня';
+  else if (postponed) sub = 'Перенесено на завтра';
+  else if (due) sub = 'Пора отметить';
+  else sub = `Следующий раз — ${formatDate(getNextDue(h))}`;
+
+  const el = document.createElement('div');
+  el.className = 'habit' + (done ? ' done' : '');
+  el.innerHTML = `
+    <div class="habit-main">
+      <div class="habit-name">${escapeHtml(h.name)}</div>
+      <div class="habit-sub">${escapeHtml(sub)}</div>
+    </div>
+    <button class="check-btn ${done ? 'on' : ''}" aria-label="Отметить">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12l5 5L20 7"/>
+      </svg>
+    </button>`;
+  el.querySelector('.habit-main').addEventListener('click', () => { state.detailId = h.id; go('detail'); });
+  el.querySelector('.check-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (done) clearTodayMark(h); else setMark(h, 'done');
+    tg.HapticFeedback?.impactOccurred('light');
+    renderList();
+  });
+  return el;
+}
+
+function renderDetail() {
+  const h = state.habits.find(x => x.id === state.detailId);
+  if (!h) return go('list');
+  $('detail-title').textContent = h.name;
+  const freq = h.intervalDays === 1 ? 'Каждый день'
+    : h.intervalDays === 2 ? 'Через день'
+    : h.intervalDays === 3 ? 'Каждые 3 дня'
+    : h.intervalDays === 7 ? 'Раз в неделю' : `Каждые ${h.intervalDays} дн.`;
+  $('detail-subtitle').textContent = freq;
+  $('stat-streak').textContent = getStreak(h);
+  $('stat-best').textContent = getBest(h);
+  $('stat-month').textContent = getMonthPct(h) + '%';
+  renderCalendar(h);
+  renderDetailActions(h);
+}
+
+function renderCalendar(h) {
+  const marks = getMarks(h);
+  const today = todayStr();
+  const todayDate = parseYmd(today);
+  const dow = (todayDate.getDay() + 6) % 7;
+  const thisWeekStart = addDays(today, -dow);
+  const startWeek = addDays(thisWeekStart, -7 * 11);
+  const dayLabels = ['П','В','С','Ч','П','С','В'];
+
+  let html = '<div class="cal-row header"><div class="cal-week-spacer"></div>';
+  dayLabels.forEach(dl => html += `<div class="cal-day-label">${dl}</div>`);
+  html += '</div>';
+
+  for (let w = 0; w < 12; w++) {
+    const ws = addDays(startWeek, w * 7);
+    const wsDate = parseYmd(ws);
+    const prev = w > 0 ? parseYmd(addDays(startWeek, (w-1)*7)) : null;
+    const showMonth = w === 0 || (prev && wsDate.getMonth() !== prev.getMonth());
+    html += `<div class="cal-row"><div class="cal-week-label">${showMonth ? MONTHS[wsDate.getMonth()] : ''}</div>`;
+    for (let d = 0; d < 7; d++) {
+      const date = addDays(ws, d);
+      let cls = 'cal-cell';
+      if (date > today) cls += ' future';
+      else if (marks[date] === 'done') cls += ' done';
+      else if (marks[date] === 'postponed') cls += ' postponed';
+      else cls += ' empty';
+      html += `<div class="${cls}"></div>`;
+    }
+    html += '</div>';
+  }
+  $('detail-calendar').innerHTML = html;
+}
+
+function renderDetailActions(h) {
+  const done = isDoneToday(h);
+  const postponed = isPostponedToday(h);
+  const due = isDueToday(h);
+  const wrap = $('detail-actions');
+  wrap.innerHTML = '';
+
+  if (done) {
+    const b = document.createElement('button');
+    b.className = 'action-btn secondary';
+    b.textContent = 'Отменить отметку';
+    b.onclick = () => { clearTodayMark(h); renderDetail(); };
+    wrap.appendChild(b);
+    return;
+  }
+  if (postponed) {
+    const b = document.createElement('button');
+    b.className = 'action-btn secondary';
+    b.textContent = 'Отменить перенос';
+    b.onclick = () => { clearTodayMark(h); renderDetail(); };
+    wrap.appendChild(b);
+    return;
+  }
+
+  const markBtn = document.createElement('button');
+  markBtn.className = 'action-btn primary';
+  markBtn.textContent = 'Отметить выполненным';
+  markBtn.onclick = () => { setMark(h, 'done'); tg.HapticFeedback?.notificationOccurred('success'); renderDetail(); };
+  wrap.appendChild(markBtn);
+
+  if (due) {
+    const postBtn = document.createElement('button');
+    postBtn.className = 'action-btn secondary';
+    postBtn.textContent = 'Перенести на завтра';
+    postBtn.onclick = () => { setMark(h, 'postponed'); renderDetail(); };
+    wrap.appendChild(postBtn);
+  }
+}
+
+function go(screen) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  $('screen-' + screen).classList.add('active');
+  window.scrollTo(0, 0);
+  if (screen === 'list') renderList();
+  if (screen === 'detail') renderDetail();
+  if (screen === 'add') {
+    $('input-name').value = '';
+    state.addForm.name = '';
+    state.addForm.intervalDays = 1;
+    document.querySelectorAll('.seg-item').forEach(el => el.classList.toggle('active', el.dataset.interval === '1'));
+    $('btn-save').disabled = true;
+    setTimeout(() => $('input-name').focus(), 150);
+  }
+}
+
+$('btn-add').onclick = () => go('add');
+$('btn-cancel').onclick = () => go('list');
+$('btn-back').onclick = () => go('list');
+$('btn-save').onclick = () => {
+  const name = state.addForm.name.trim();
+  if (!name) return;
+  state.habits.push({
+    id: 'h_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    name,
+    intervalDays: state.addForm.intervalDays,
+    startDate: todayStr(),
+    createdAt: new Date().toISOString()
+  });
+  persist();
+  tg.HapticFeedback?.notificationOccurred('success');
+  go('list');
+};
+$('input-name').addEventListener('input', (e) => {
+  state.addForm.name = e.target.value;
+  $('btn-save').disabled = !e.target.value.trim();
+});
+document.querySelectorAll('.seg-item').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.seg-item').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    state.addForm.intervalDays = parseInt(el.dataset.interval);
+  });
+});
+$('btn-delete').onclick = () => {
+  const h = state.habits.find(x => x.id === state.detailId);
+  if (!h) return;
+  if (!confirm(`Удалить привычку «${h.name}»?`)) return;
+  state.habits = state.habits.filter(x => x.id !== h.id);
+  delete state.marks[h.id];
+  persist();
+  go('list');
+};
+
+load();
+go('list');
+</script>
+</body>
+  </html>
